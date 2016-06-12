@@ -22,10 +22,10 @@ public class SimpleExporterDemoNew {
             return;
         }
         List listMapValues = (List) obj.get("Values");
-        StringBuilder headersStr = new StringBuilder();
         // Вывод всех значений
         if (template.isEmpty() && obj.get("Headers") == null) {
             List headersList = new ArrayList();
+            StringBuilder headersStr = new StringBuilder();
             // Строим список заголовков и название по первому элементу списка значений
             for (Object val : ((Map) listMapValues.get(0)).keySet()) {
                 headersStr.append(val).append(",");
@@ -45,6 +45,7 @@ public class SimpleExporterDemoNew {
         else if (template.isEmpty() && obj.get("Headers") != null) {
             // Строим название заголовков по списку заголовков
             List headersList = (List) obj.get("Headers");
+            StringBuilder headersStr = new StringBuilder();
             for (Object val : headersList) {
                 headersStr.append(val).append(",");
             }
@@ -78,41 +79,23 @@ public class SimpleExporterDemoNew {
                 try (OutputStream os3 = new FileOutputStream("target/simple_export_output_all_template_headers.xlsx")) {
                     Context context = new Context();
                     List headersList = (List) obj.get("Headers");
-                    context.putVar("headers", headersList);
-                    // переколбасить данные для вывода
-
-                    context.putVar("data", listMapValues);
+                    // Пересоздание данных на основе заголовков, т.к. не портим входящие данные
+                    List modifyListMapValues = new ArrayList();
+                    for (Object mapVal : listMapValues) {
+                        Map modifyMap = new LinkedHashMap();
+                        for (Object header : headersList) {
+                            modifyMap.put(header, ((Map) mapVal).get(header));
+                        }
+                        modifyListMapValues.add(modifyMap);
+                    }
+                    context.putVar("data", modifyListMapValues);
                     JxlsHelper.getInstance().processTemplate(is, os3, context);
-                    //JxlsHelper.getInstance().processGridTemplateAtCell(is, os3, context, headersStr.toString(), "Sheet1!A1");
-
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
             return;
         }
-
-/*
-        try (OutputStream os1 = new FileOutputStream("target/simple_export_output1.xls")) {
-            SimpleExporter exporter = new SimpleExporter();
-            // Вывод всего подряд в зависимости от внутреннего формата
-            exporter.gridExport(headersList, listMapValues, headersStr.toString(), os1);
-            try (InputStream is = SimpleExporterDemo.class.getResourceAsStream(template)) {
-                try (OutputStream os3 = new FileOutputStream("target/simple_export_output3.xlsx")) {
-                    Context context = new Context();
-                    //context.putVar("headers", headersList);
-                    context.putVar("data", listMapValues);
-                    JxlsHelper.getInstance().processTemplate(is, os3, context);
-                    //JxlsHelper.getInstance().processGridTemplateAtCell(is, os3, context, headersStr.toString(), "Sheet1!A1");
-                }
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        */
-
     }
 
     public static void main(String[] args) throws ParseException, IOException {
